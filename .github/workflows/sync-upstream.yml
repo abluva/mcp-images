@@ -115,5 +115,4 @@ jobs:
           # Create new issue with the diff report
           gh issue create \
             --title "$TITLE" \
-            --body "$BODY" \
-            --label "upstream-sync"
+            --body "$BODY"
