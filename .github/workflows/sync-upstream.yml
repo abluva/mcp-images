@@ -1,0 +1,119 @@
+name: Check Upstream Changes
+
+on:
+  schedule:
+    - cron: "0 9 * * 1" # Every Monday at 9 AM UTC
+  workflow_dispatch:
+
+jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout our repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/obot-platform/mcp-images.git
+          git fetch upstream main
+
+      - name: Generate diff report
+        id: diff-report
+        run: |
+          echo "## Upstream Changes Report" > /tmp/report.md
+          echo "" >> /tmp/report.md
+          echo "Comparing our \`main\` with \`obot-platform/mcp-images:main\`" >> /tmp/report.md
+          echo "" >> /tmp/report.md
+
+          has_changes="false"
+
+          # Check each area separately
+          echo "### images.yaml" >> /tmp/report.md
+          DIFF=$(git diff HEAD..upstream/main -- repackaging/images.yaml 2>/dev/null)
+          if [ -n "$DIFF" ]; then
+            has_changes="true"
+            echo '```diff' >> /tmp/report.md
+            echo "$DIFF" | head -100 >> /tmp/report.md
+            echo '```' >> /tmp/report.md
+          else
+            echo "No changes." >> /tmp/report.md
+          fi
+          echo "" >> /tmp/report.md
+
+          echo "### Dockerfiles (mcp-servers/)" >> /tmp/report.md
+          DIFF=$(git diff HEAD..upstream/main -- mcp-servers/ 2>/dev/null)
+          if [ -n "$DIFF" ]; then
+            has_changes="true"
+            echo '```diff' >> /tmp/report.md
+            echo "$DIFF" | head -100 >> /tmp/report.md
+            echo '```' >> /tmp/report.md
+          else
+            echo "No changes." >> /tmp/report.md
+          fi
+          echo "" >> /tmp/report.md
+
+          echo "### Base Dockerfiles & Scripts" >> /tmp/report.md
+          DIFF=$(git diff HEAD..upstream/main -- Dockerfile.base-node Dockerfile.base-python Dockerfile.nanobot Dockerfile.stdio-wrapper scripts/ 2>/dev/null)
+          if [ -n "$DIFF" ]; then
+            has_changes="true"
+            echo '```diff' >> /tmp/report.md
+            echo "$DIFF" | head -100 >> /tmp/report.md
+            echo '```' >> /tmp/report.md
+          else
+            echo "No changes." >> /tmp/report.md
+          fi
+          echo "" >> /tmp/report.md
+
+          echo "### Source Code (hubspot/, http-webhook-mcp-converter/)" >> /tmp/report.md
+          DIFF=$(git diff HEAD..upstream/main -- hubspot/ http-webhook-mcp-converter/ 2>/dev/null)
+          if [ -n "$DIFF" ]; then
+            has_changes="true"
+            echo '```diff' >> /tmp/report.md
+            echo "$DIFF" | head -100 >> /tmp/report.md
+            echo '```' >> /tmp/report.md
+          else
+            echo "No changes." >> /tmp/report.md
+          fi
+          echo "" >> /tmp/report.md
+
+          echo "### Workflows (.github/workflows/)" >> /tmp/report.md
+          DIFF=$(git diff HEAD..upstream/main -- .github/workflows/ 2>/dev/null)
+          if [ -n "$DIFF" ]; then
+            has_changes="true"
+            echo '```diff' >> /tmp/report.md
+            echo "$DIFF" | head -100 >> /tmp/report.md
+            echo '```' >> /tmp/report.md
+          else
+            echo "No changes." >> /tmp/report.md
+          fi
+          echo "" >> /tmp/report.md
+
+          echo "---" >> /tmp/report.md
+          echo "Full diff: https://github.com/abluva/mcp-images/compare/main...obot-platform:mcp-images:main" >> /tmp/report.md
+
+          echo "has_changes=$has_changes" >> $GITHUB_OUTPUT
+
+      - name: Create or update issue
+        if: steps.diff-report.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TITLE="chore: upstream changes available from obot-platform/mcp-images"
+          BODY=$(cat /tmp/report.md)
+
+          # Close any existing sync issue
+          EXISTING=$(gh issue list --search "$TITLE" --state open --json number --jq '.[0].number' 2>/dev/null)
+          if [ -n "$EXISTING" ]; then
+            gh issue close "$EXISTING" --comment "Superseded by new sync check."
+          fi
+
+          # Create new issue with the diff report
+          gh issue create \
+            --title "$TITLE" \
+            --body "$BODY" \
+            --label "upstream-sync"
