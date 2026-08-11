@@ -7,22 +7,32 @@ images:
     type: python
     package: awslabs.aws-api-mcp-server
     version: 1.3.26
+    constraints:
+      - "mcp>=1.0,<2"
   - name: aws-documentation
     type: python
     package: awslabs.aws-documentation-mcp-server
     version: 1.1.20
+    constraints:
+      - "mcp>=1.0,<2"
   - name: aws-eks
     type: python
     package: awslabs.eks-mcp-server
     version: 0.1.27
+    constraints:
+      - "mcp>=1.0,<2"
   - name: aws-kendra
     type: python
     package: awslabs.amazon-kendra-index-mcp-server
     version: 1.0.15
+    constraints:
+      - "mcp>=1.0,<2"
   - name: aws-redshift
     type: python
     package: awslabs.redshift-mcp-server
     version: 0.0.20
+    constraints:
+      - "mcp>=1.0,<2"
   - name: azure
     type: node
     package: "@azure/mcp"
@@ -35,6 +45,8 @@ images:
     type: python
     package: chroma-mcp
     version: 0.2.6
+    constraints:
+      - "mcp>=1.0,<2"
   - name: context7
     type: node
     package: "@upstash/context7-mcp"
@@ -46,7 +58,9 @@ images:
   - name: duckduckgo-search
     type: python
     package: duckduckgo-mcp-server
-    version: 0.6.1
+    version: 0.1.2
+    constraints:
+      - "mcp>=1.0,<2"
   - name: exa-search
     type: node
     package: exa-mcp-server
@@ -59,6 +73,8 @@ images:
     type: python
     package: files-com-mcp
     version: 1.0.42
+    constraints:
+      - "mcp>=1.0,<2"
   - name: gitlab
     type: node
     package: "@zereight/mcp-gitlab"
@@ -79,10 +95,14 @@ images:
     type: python
     package: mysql-mcp-server
     version: 0.2.2
+    constraints:
+      - "mcp>=1.0,<2"
   - name: pagerduty
     type: python
     package: pagerduty-mcp
     version: 0.17.0
+    constraints:
+      - "mcp>=1.0,<2"
   - name: playwright
     type: node
     package: "@playwright/mcp"
@@ -91,6 +111,8 @@ images:
     type: python
     package: postgres-mcp
     version: 0.3.0
+    constraints:
+      - "mcp>=1.0,<2"
   - name: supabase
     type: node
     package: "@supabase/mcp-server-supabase"
@@ -105,6 +127,7 @@ images:
     version: 0.0.1a4
     constraints:
       - "mammoth~=1.11.0"
+      - "mcp>=1.0,<2"
   - name: brave-search
     type: node
     package: "@brave/brave-search-mcp-server"
@@ -117,6 +140,8 @@ images:
     type: python
     package: redis-mcp-server
     version: 0.5.0
+    constraints:
+      - "mcp>=1.0,<2"
   - name: terraform
     type: docker
     package: hashicorp/terraform-mcp-server
