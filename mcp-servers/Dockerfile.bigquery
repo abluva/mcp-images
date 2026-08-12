@@ -1,0 +1,63 @@
+FROM golang:1.25.1-alpine3.22 AS builder
+
+# Install required packages
+RUN apk add --no-cache \
+    curl \
+    ca-certificates \
+    bash \
+    git
+
+# Set working directory
+WORKDIR /app
+
+# Clone the bigquery-mcp repository
+ARG BIGQUERY_MCP_REPO=https://github.com/obot-platform/bigquery-mcp.git
+ARG BIGQUERY_MCP_COMMIT=main
+RUN git clone ${BIGQUERY_MCP_REPO} . && \
+    git checkout ${BIGQUERY_MCP_COMMIT}
+
+# Download toolbox binary or build from source
+ARG TOOLBOX_VERSION=v0.13.0
+ARG TARGETARCH
+ARG TARGETOS=linux
+RUN set -ex; \
+    case "${TARGETARCH}" in \
+        amd64) \
+            OS="linux/amd64"; \
+            DOWNLOAD_URL="https://storage.googleapis.com/genai-toolbox/${TOOLBOX_VERSION}/${OS}/toolbox"; \
+            echo "Downloading from: $DOWNLOAD_URL"; \
+            curl -L -o /app/toolbox "$DOWNLOAD_URL"; \
+            chmod +x /app/toolbox \
+            ;; \
+        arm64) \
+            echo "Building from source for linux/arm64"; \
+            git clone --depth 1 --branch ${TOOLBOX_VERSION} https://github.com/googleapis/genai-toolbox.git /tmp/toolbox-src; \
+            cd /tmp/toolbox-src; \
+            CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+            go build -o /app/toolbox .; \
+            chmod +x /app/toolbox; \
+            rm -rf /tmp/toolbox-src \
+            ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}"; exit 1 ;; \
+    esac
+
+FROM alpine:3.22 AS runner
+
+WORKDIR /app
+
+RUN apk add --no-cache ca-certificates bash
+
+# Copy toolbox binary
+COPY --from=builder /app/toolbox /app/toolbox
+
+# Copy startup script and tools template
+COPY --from=builder /app/scripts/startup.sh /app/startup.sh
+COPY --from=builder /app/config/tools.yaml.template /app/tools.yaml.template
+
+# Make startup script executable and ensure /app is writable
+RUN chmod +x /app/startup.sh && chmod 777 /app
+
+EXPOSE 3000
+
+# Run the startup script
+CMD ["/app/startup.sh"]

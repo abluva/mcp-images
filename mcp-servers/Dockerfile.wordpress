@@ -1,0 +1,50 @@
+FROM ghcr.io/obot-platform/nanobot:v0.0.92 AS base
+
+WORKDIR /app
+
+# Install git to clone the repository
+USER root
+RUN apk add --no-cache git
+
+# Clone the wordpress-mcp-server repository
+ARG WORDPRESS_MCP_REPO=https://github.com/obot-platform/wordpress-mcp-server.git
+ARG WORDPRESS_MCP_COMMIT=main
+RUN git clone ${WORDPRESS_MCP_REPO} /tmp/wordpress && \
+    cp -r /tmp/wordpress/src /app/src && \
+    cp /tmp/wordpress/.python-version /app/ && \
+    cp /tmp/wordpress/LICENSE /app/ && \
+    cp /tmp/wordpress/main.py /app/ && \
+    cp /tmp/wordpress/pyproject.toml /app/ && \
+    cp -f /tmp/wordpress/uv.lock /app/ 2>/dev/null || true && \
+    rm -rf /tmp/wordpress
+
+RUN mkdir -p /app/src && chown -R 1000:1000 /app
+
+USER 1000
+
+RUN uv sync
+
+USER root
+
+RUN cat > /nanobot.yaml <<'EOF'
+publish:
+  mcpServers: [server]
+
+mcpServers:
+  server:
+    command: uv
+    args: [run, python, /app/main.py]
+    env:
+      UV_PROJECT: /app
+      WORDPRESS_SITE: ${WORDPRESS_SITE}
+      WORDPRESS_USERNAME: ${WORDPRESS_USERNAME}
+      WORDPRESS_PASSWORD: ${WORDPRESS_PASSWORD}
+EOF
+
+RUN chown 1000:1000 /nanobot.yaml
+
+ENTRYPOINT ["nanobot"]
+
+CMD ["run", "--listen-address", ":8099", "-e", "WORDPRESS_SITE", "-e", "WORDPRESS_USERNAME", "-e", "WORDPRESS_PASSWORD", "/nanobot.yaml"]
+
+USER 1000

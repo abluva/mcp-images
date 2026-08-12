@@ -30,6 +30,10 @@ jobs:
           - elasticsearch
           - googlecloudrun
           - http-webhook-mcp-converter
+          - bigquery
+          - salesforce
+          - slack
+          - wordpress
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -98,6 +102,10 @@ jobs:
           - elasticsearch
           - googlecloudrun
           - http-webhook-mcp-converter
+          - bigquery
+          - salesforce
+          - slack
+          - wordpress
     runs-on: ubuntu-latest
     steps:
       - name: Log in to OCIR

@@ -1,0 +1,46 @@
+FROM node:24-alpine AS builder
+
+WORKDIR /app
+
+# Install git to clone the repository
+RUN apk add --no-cache git
+
+# Clone the slack-mcp repository
+ARG SLACK_MCP_REPO=https://github.com/obot-platform/slack-mcp.git
+ARG SLACK_MCP_COMMIT=main
+RUN git clone ${SLACK_MCP_REPO} . && \
+    git checkout ${SLACK_MCP_COMMIT}
+
+# Install all dependencies (including dev dependencies for build)
+RUN npm ci
+
+# Build TypeScript
+RUN npm run build
+
+# Production stage
+FROM node:24-alpine AS runner
+
+WORKDIR /app
+
+# Copy package files
+COPY --from=builder /app/package*.json ./
+
+# Install only production dependencies
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copy built files from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Expose port
+EXPOSE 3000
+
+# Set environment variable for port
+ENV PORT=3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+
+# Start the server
+CMD ["npm", "start"]
