@@ -159,21 +159,21 @@ jobs:
           dependency-snapshot: false
           upload-artifact-retention: 30
 
-      # - name: trigger catalog update
-      #   if: steps.check-image.outputs.exists == 'false'
-      #   uses: peter-evans/repository-dispatch@v3
-      #   with:
-      #     token: ${{ secrets.DISPATCH_PAT }}
-      #     repository: abluva/mcp-catalog
-      #     event-type: update-image-tag
-      #     client-payload: |
-      #       {
-      #         "image_name": "${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_REPO }}/${{ matrix.name }}",
-      #         "new_tag": "${{ matrix.version }}",
-      #         "name": "${{ matrix.name }}",
-      #         "package": "${{ matrix.package }}",
-      #         "type": "${{ matrix.type }}"
-      #       }
+      - name: trigger catalog update
+        if: steps.check-image.outputs.exists == 'false'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DISPATCH_PAT }}
+          repository: abluva/mcp-catalog
+          event-type: update-image-tag
+          client-payload: |
+            {
+              "image_name": "${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_REPO }}/${{ matrix.name }}",
+              "new_tag": "${{ matrix.version }}",
+              "name": "${{ matrix.name }}",
+              "package": "${{ matrix.package }}",
+              "type": "${{ matrix.type }}"
+            }
 
   trivy-scan:
     permissions:
